@@ -2,8 +2,14 @@ package manage_start
 
 import (
 	"bytes"
-	_ "embed"
-) // Blank import required to use go directive.
+	_ "embed" // Blank import required to use go directive.
+	"fmt"
+	"io/fs"
+	"os"
+	"path"
+)
+
+const envFileName = "services.env"
 
 // defaultServiesEnv contains all default environment variables to be
 // used in docker-compose.yml template.
@@ -23,4 +29,22 @@ func servicesEnv() string {
 		res += "\n      - " + string(e)
 	}
 	return res
+}
+
+// createEnvFile creates a services.env file in the given directory.
+func createEnvFile(d string) error {
+	p := path.Join(d, envFileName)
+
+	if fileExists(p) {
+		fmt.Printf("File %s does already exist. Skip this step.\n", p)
+		return nil
+	}
+
+	if err := os.WriteFile(p, defaultServicesEnv, fs.ModePerm); err != nil {
+		return fmt.Errorf("write services file at %s: %w", p, err)
+	}
+
+	fmt.Printf("Successfully created file %s.\n", p)
+
+	return nil
 }

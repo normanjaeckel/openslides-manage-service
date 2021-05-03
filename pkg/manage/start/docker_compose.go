@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"html/template"
 	"io"
+	"os"
 	"path"
 
 	"github.com/adrg/xdg"
@@ -70,7 +71,7 @@ type tplData struct {
 // constructDockerComposeYML writes the populated template to the given writer.
 // If remote is true it uses GitHub URIs for the build context. Else it uses
 // relative paths to local code as provided in OpenSlides main repository.
-func constructDockerComposeYML(w io.Writer, remote bool, secretsParentPath string) error {
+func constructDockerComposeYML(w io.Writer, remote bool, secretsParentPath string, fullEnv bool) error {
 	composeTPL, err := template.New("compose").Parse(defaultDockerCompose)
 	if err != nil {
 		return fmt.Errorf("creating Docker Compose template: %w", err)
@@ -82,7 +83,7 @@ func constructDockerComposeYML(w io.Writer, remote bool, secretsParentPath strin
 		ExternalManagePort: ExternalManagePort,
 	}
 
-	if err := populateServices(&td, remote); err != nil {
+	if err := populateServices(&td, remote, fullEnv); err != nil {
 		return fmt.Errorf("populating services to template data: %w", err)
 	}
 
@@ -97,59 +98,100 @@ func constructDockerComposeYML(w io.Writer, remote bool, secretsParentPath strin
 
 // populateServices is a small helper function that populates service metadata
 // to the given template data.
-func populateServices(td *tplData, remote bool) error {
+func populateServices(td *tplData, remote, fullEnv bool) error {
 	services, err := services()
 	if err != nil {
 		return fmt.Errorf("getting services: %w", err)
 	}
 
 	td.Service = make(map[string]string, len(services))
-
-	if remote {
-		// Remote case with image URL to Docker Registry.
-		for name, service := range services {
-			td.Service[name] = fmt.Sprintf(
-				"image: %s/%s:%s\n    environment:%s",
-				DockerRegistry,
-				service.Image,
-				OpenSlidesTag,
-				servicesEnv(),
-			)
+	for name, service := range services {
+		if remote {
+			td.Service[name] = populateServiceRemoteCase(service.Image, fullEnv) // TODO: Use flag.
+		} else {
+			td.Service[name] = populateServiceLocalCase(service)
 		}
-		return nil
 	}
+	return nil
+}
 
-	// Local case with build context pointing to relativ path.
-	fragment := `env_file: services.env
+// populateServiceRemoteCase is a small helper function that populates service
+// metadata to the given template data for one service in remote case. If
+// fullEnv is true all environment variables are inserted, else we use the
+// services.env file.
+func populateServiceRemoteCase(img string, fullEnv bool) string {
+	s := fmt.Sprintf(
+		"image: %s/%s:%s",
+		DockerRegistry,
+		img,
+		OpenSlidesTag,
+	)
+	if fullEnv {
+		return s + "\n    environment:" + servicesEnv()
+	}
+	return s + "\n    env_file: " + envFileName
+}
+
+// populateServiceLocalCase is a small helper function that populates service metadata
+// to the given template data for one service in local case.
+func populateServiceLocalCase(service service) string {
+	fragment := `env_file: %s
     image: %s
     build:
       context: ./%s`
-
 	fragmentSuffix := `
       args:
         MODULE: %s
         PORT: %s`
 
-	for name, service := range services {
-		s := fmt.Sprintf(
-			fragment,
-			fmt.Sprintf("%s:%s", service.Image, OpenSlidesTag),
-			service.Path,
+	s := fmt.Sprintf(
+		fragment,
+		envFileName,
+		fmt.Sprintf("%s:%s", service.Image, OpenSlidesTag),
+		service.Path,
+	)
+
+	if service.Args.MODULE != "" || service.Args.PORT != "" {
+		s += fmt.Sprintf(
+			fragmentSuffix,
+			service.Args.MODULE,
+			service.Args.PORT,
 		)
-		if service.Args.MODULE != "" || service.Args.PORT != "" {
-			s += fmt.Sprintf(
-				fragmentSuffix,
-				service.Args.MODULE,
-				service.Args.PORT,
-			)
-		}
-		if len(service.Environment) > 0 {
-			s += "\n    environment:"
-			for k, v := range service.Environment {
-				s += fmt.Sprintf("\n      - %s=%s", k, v)
-			}
-		}
-		td.Service[name] = s
 	}
+
+	if len(service.Environment) > 0 {
+		s += "\n    environment:"
+		for k, v := range service.Environment {
+			s += fmt.Sprintf("\n      - %s=%s", k, v)
+		}
+	}
+
+	return s
+}
+
+// createDockerComposeYML creates a docker-compose.yml file in the given
+// directory using a template. In remote mode it uses URLs to GitHub Container
+// Registry of all services. Else it uses relative paths to local code as
+// provided in OpenSlides main repository.
+func createDockerComposeYML(d string, remote bool) error {
+	p := path.Join(d, "docker-compose.yml")
+
+	if fileExists(p) {
+		fmt.Printf("File %s does already exist. Skip this step.\n", p)
+		return nil
+	}
+
+	w, err := os.Create(p)
+	if err != nil {
+		return fmt.Errorf("creating file `%s`: %w", p, err)
+	}
+	defer w.Close()
+
+	if err := constructDockerComposeYML(w, remote, d, false); err != nil {
+		return fmt.Errorf("writing content to file `%s`: %w", p, err)
+	}
+
+	fmt.Printf("Successfully created file %s.\n", p)
+
 	return nil
 }

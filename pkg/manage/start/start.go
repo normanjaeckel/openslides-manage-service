@@ -23,7 +23,7 @@ func StartOpenSlides(ctx context.Context) error {
 	if dcp == "-" {
 		appHome := path.Join(xdg.DataHome, appName)
 		var w strings.Builder
-		if err := constructDockerComposeYML(&w, true, appHome); err != nil {
+		if err := constructDockerComposeYML(&w, true, appHome, true); err != nil {
 			return fmt.Errorf("constructing Docker Compose configuration: %w", err)
 		}
 

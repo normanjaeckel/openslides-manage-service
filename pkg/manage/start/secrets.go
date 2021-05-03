@@ -17,8 +17,8 @@ const (
 
 // createSecrets creates random values used as secrets in Docker Compose file
 // if the secrets don't already exist.
-func createSecrets(p string) error {
-	p = path.Join(p, secretsSubDir)
+func createSecrets(d string) error {
+	p := path.Join(d, secretsSubDir)
 	if err := os.MkdirAll(p, fs.ModePerm); err != nil {
 		return fmt.Errorf("creating directory `%s`: %w", p, err)
 	}
@@ -31,6 +31,7 @@ func createSecrets(p string) error {
 		err := func() error {
 			s := path.Join(p, key)
 			if fileExists(s) {
+				fmt.Printf("File %s does already exist. Skip this step.\n", s)
 				return nil
 			}
 
@@ -47,6 +48,7 @@ func createSecrets(p string) error {
 			if _, err := io.Copy(b64e, io.LimitReader(rand.Reader, 32)); err != nil {
 				return fmt.Errorf("writing cryptographically secure random base64 encoded bytes: %w", err)
 			}
+			fmt.Printf("Successfully created file %s.\n", s)
 
 			return nil
 		}()
@@ -57,11 +59,13 @@ func createSecrets(p string) error {
 
 	a := path.Join(p, "admin")
 	if fileExists(a) {
+		fmt.Printf("File %s does already exist. Skip this step.\n", a)
 		return nil
 	}
 	if err := os.WriteFile(a, []byte(adminPassword), 0666); err != nil {
 		return fmt.Errorf("writing admin password to secret file: %w", err)
 	}
+	fmt.Printf("Successfully created file %s.\n", a)
 
 	return nil
 }
