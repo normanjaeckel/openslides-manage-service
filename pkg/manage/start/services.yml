@@ -1,0 +1,48 @@
+---
+proxy:
+  image: openslides-proxy
+  path: proxy
+
+client:
+  image: openslides-client
+  path: openslides-client
+
+backend:
+  image: openslides-backend
+  path: openslides-backend
+
+datastore_reader:
+  image: openslides-datastore-reader
+  path: openslides-datastore-service
+  args:
+    module: reader
+    port: "9010"
+  environment:
+    NUM_WORKERS: "8"
+
+datastore_writer:
+  image: openslides-datastore-writer
+  path: openslides-datastore-service
+  args:
+    module: writer
+    port: "9011"
+
+autoupdate:
+  image: openslides-autoupdate
+  path: openslides-autoupdate-service
+
+auth:
+  image: openslides-auth
+  path: openslides-auth-service
+
+media:
+  image: openslides-media
+  path: openslides-media-service
+
+manage:
+  image: openslides-manage
+  path: openslides-manage-service
+
+permission:
+  image: openslides-permission
+  path: openslides-permission-service

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	manage_start "github.com/OpenSlides/openslides-manage-service/pkg/manage/start"
 	"github.com/OpenSlides/openslides-manage-service/proto"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -20,6 +21,7 @@ func cmdRoot(cfg *ClientConfig) *cobra.Command {
 		SilenceUsage: true,
 	}
 
+	// TODO: Move address and timeout to the commands that need it.
 	cmd.PersistentFlags().StringVarP(&cfg.Address, "address", "a", "localhost:9008", "Address of the OpenSlides manage service")
 	cmd.PersistentFlags().DurationVarP(&cfg.Timeout, "timeout", "t", 5*time.Second, "Time to wait for the command's response")
 
@@ -32,7 +34,7 @@ func RunClient() error {
 	cmd := cmdRoot(cfg)
 	cmd.AddCommand(
 		cmdStart(cfg),
-		cmdSetup(cfg),
+		//cmdSetup(cfg),
 		//CmdCompose(cfg),
 		CmdCheckServer(cfg),
 		CmdInitialData(cfg),
@@ -57,4 +59,35 @@ func Dial(ctx context.Context, address string) (proto.ManageClient, func() error
 		return nil, nil, fmt.Errorf("creating gRPC client connection with grpc.DialContect(): %w", err)
 	}
 	return proto.NewManageClient(conn), conn.Close, nil
+}
+
+const startHelp = `Starts OpenSlides
+
+This starts OpenSlides with the Docker Compose configuration given in current
+directory, in XDG Data directory or with default configuration. It also creates
+initial data if it is the first start.
+
+Eventually the required Docker images are downloaded which may take a while.
+`
+
+// cmdStart starts OpenSlides eventually with initial-data.
+func cmdStart(cfg *ClientConfig) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "start",
+		Short: "Starts OpenSlides",
+		Long:  startHelp,
+	}
+
+	cmd.RunE = func(cmd *cobra.Command, args []string) error {
+		ctx, cancel := context.WithCancel(context.Background())
+		defer cancel()
+
+		if err := manage_start.StartOpenSlides(ctx); err != nil {
+			return fmt.Errorf("starting OpenSlides: %w", err)
+		}
+
+		return nil
+	}
+
+	return cmd
 }

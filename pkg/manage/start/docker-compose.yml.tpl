@@ -12,7 +12,6 @@ services:
       - autoupdate
       - auth
       - media
-    env_file: services.env
     networks:
       - uplink
       - frontend
@@ -33,7 +32,6 @@ services:
       - datastore-reader
       - datastore-writer
       - auth
-    env_file: services.env
     networks:
       - frontend
       - backend
@@ -45,9 +43,6 @@ services:
     {{ .Service.datastore_reader }}
     depends_on:
       - postgres
-    env_file: services.env
-    environment:
-      - NUM_WORKERS=8
     networks:
       - backend
       - datastore-reader
@@ -58,7 +53,6 @@ services:
     depends_on:
       - postgres
       - message-bus
-    env_file: services.env
     networks:
       - backend
       - postgres
@@ -78,7 +72,6 @@ services:
     depends_on:
       - datastore-reader
       - message-bus
-    env_file: services.env
     networks:
       - frontend
       - datastore-reader
@@ -93,7 +86,6 @@ services:
       - datastore-reader
       - message-bus
       - cache
-    env_file: services.env
     networks:
       - frontend
       - datastore-reader
@@ -118,7 +110,6 @@ services:
     depends_on:
       - backend
       - postgres
-    env_file: services.env
     networks:
       - frontend
       - backend
@@ -130,7 +121,6 @@ services:
       - datastore-reader
       - datastore-writer
       - auth
-    env_file: services.env
     ports:
       - "127.0.0.1:{{ .ExternalManagePort }}:9008"
     networks:
@@ -145,7 +135,6 @@ services:
     {{ .Service.permission }}
     depends_on:
     - datastore-reader
-    env_file: services.env
     networks:
     - frontend
     - backend
@@ -169,8 +158,8 @@ networks:
 
 secrets:
   auth_token_key:
-    file: ./secrets/auth_token_key
+    file: {{ .Secret.AuthTokenKey }}
   auth_cookie_key:
-    file: ./secrets/auth_cookie_key
+    file: {{ .Secret.AuthCookieKey }}
   admin:
-    file: ./secrets/admin
+    file: {{ .Secret.Admin }}
