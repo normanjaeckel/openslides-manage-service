@@ -137,7 +137,17 @@ func populateServices(td *tplData, remote bool) error {
 			service.Path,
 		)
 		if service.Args.MODULE != "" || service.Args.PORT != "" {
-			s += fmt.Sprintf(fragmentSuffix, service.Args.MODULE, service.Args.PORT)
+			s += fmt.Sprintf(
+				fragmentSuffix,
+				service.Args.MODULE,
+				service.Args.PORT,
+			)
+		}
+		if len(service.Environment) > 0 {
+			s += "\n    environment:"
+			for k, v := range service.Environment {
+				s += fmt.Sprintf("\n      - %s=%s", k, v)
+			}
 		}
 		td.Service[name] = s
 	}

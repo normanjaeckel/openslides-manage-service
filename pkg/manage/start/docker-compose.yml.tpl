@@ -121,23 +121,23 @@ services:
       - datastore-reader
       - datastore-writer
       - auth
-    ports:
-      - "127.0.0.1:{{ .ExternalManagePort }}:9008"
     networks:
       - uplink
       - frontend
       - backend
     secrets:
       - admin
+    ports:
+      - "127.0.0.1:{{ .ExternalManagePort }}:9008"
 
 # TODO: Remove this service so the networks won't matter any more.
   permission:
     {{ .Service.permission }}
     depends_on:
-    - datastore-reader
+      - datastore-reader
     networks:
-    - frontend
-    - backend
+      - frontend
+      - backend
 
 # Setup: host <-uplink-> proxy <-frontend-> services that are reachable from the client <-backend-> services that are internal-only
 # There are special networks for some services only, e.g. postgres only for the postgresql, datastore reader and datastore writer

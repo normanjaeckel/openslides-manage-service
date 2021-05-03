@@ -28,7 +28,6 @@ func StartOpenSlides(ctx context.Context) error {
 		}
 
 		r := strings.NewReader(w.String())
-		fmt.Println(w.String()) // TODO
 		if err := createSecrets(appHome); err != nil {
 			return fmt.Errorf("creating secrets: %w", err)
 		}
