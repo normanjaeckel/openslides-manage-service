@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	manage_start "github.com/OpenSlides/openslides-manage-service/pkg/manage/start"
+	"github.com/OpenSlides/openslides-manage-service/pkg/manage/start"
 	"github.com/OpenSlides/openslides-manage-service/proto"
 	"github.com/spf13/cobra"
 	"google.golang.org/grpc"
@@ -82,7 +82,7 @@ func cmdStart(cfg *ClientConfig) *cobra.Command {
 		ctx, cancel := context.WithCancel(context.Background())
 		defer cancel()
 
-		if err := manage_start.StartOpenSlides(ctx); err != nil {
+		if err := start.StartOpenSlides(ctx); err != nil {
 			return fmt.Errorf("starting OpenSlides: %w", err)
 		}
 
@@ -116,7 +116,7 @@ func cmdSetup(cfg *ClientConfig) *cobra.Command {
 			return fmt.Errorf("--local requires --cwd to be set")
 		}
 
-		if err := manage_start.SetupOpenSlidesFiles(!*cwd, !*local); err != nil {
+		if err := start.SetupOpenSlidesFiles(!*cwd, !*local); err != nil {
 			return fmt.Errorf("installing OpenSlides: %w", err)
 		}
 

@@ -1,4 +1,4 @@
-package manage_start
+package start
 
 import (
 	_ "embed" // Blank import required to use go directive.
